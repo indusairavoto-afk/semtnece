@@ -174,7 +174,7 @@ console.error = function (...args) {
   origErr(...args);
 };
 app.get("/api/debug-logs", (req, res) => res.json(debugLogs));
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
