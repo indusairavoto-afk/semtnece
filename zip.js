@@ -1,12 +1,15 @@
-import { execSync } from 'child_process';
+import fs from 'fs';
 import path from 'path';
+import AdmZip from 'adm-zip';
+
+const extDir = path.join(process.cwd(), 'public', 'extension');
+const zipPath = path.join(process.cwd(), 'public', 'chatgpt-extractor.zip');
 
 try {
-  const extDir = path.join(process.cwd(), 'public', 'extension');
-  const zipPath = path.join(process.cwd(), 'public', 'chatgpt-extractor.zip');
-  execSync(`npx -y bestzip ${zipPath} *`, { cwd: extDir, stdio: 'inherit' });
-  console.log('Zipped successfully using bestzip!');
+  const zip = new AdmZip();
+  zip.addLocalFolder(extDir);
+  zip.writeZip(zipPath);
+  console.log('Zipped successfully using adm-zip!');
 } catch (e) {
-  console.error('Failed to zip:', e);
-  process.exit(1);
+  console.error(e);
 }

@@ -178,6 +178,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
+app.get("/chatgpt-extractor.zip", (req, res) => {
+  const zipPath = path.join(process.cwd(), "dist", "chatgpt-extractor.zip");
+  if (fs.existsSync(zipPath)) {
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", "attachment; filename=chatgpt-extractor.zip");
+    res.sendFile(zipPath);
+  } else {
+    res.status(404).send("Zip file not found");
+  }
+});
+
 // Setup storage for images
 const storageDir = path.join(process.cwd(), "storage", "images");
 if (!fs.existsSync(storageDir)) {
