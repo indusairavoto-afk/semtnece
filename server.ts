@@ -655,6 +655,59 @@ function extractMessagesFromHtml(html: string) {
     }
   }
 
+  // Handle React Router streaming format (new ChatGPT format)
+  if (messages.length === 0) {
+    const scripts = $("script").map((_, el) => $(el).html()).get();
+    for (const text of scripts) {
+      if (text && text.includes("streamController.enqueue")) {
+        const regex = /enqueue\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          try {
+            const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\n/g, '\n').trim();
+            if (unescaped) {
+              const jsonData = JSON.parse(unescaped);
+              
+              // search recursively just like __NEXT_DATA__
+              const searchMessages = (obj: any) => {
+                if (!obj) return;
+                if (Array.isArray(obj)) {
+                  obj.forEach(searchMessages);
+                } else if (typeof obj === "object") {
+                  if (
+                    obj.role &&
+                    obj.content &&
+                    typeof obj.content.parts !== "undefined"
+                  ) {
+                    messages.push({
+                       role: obj.role,
+                       content: Array.isArray(obj.content.parts) ? obj.content.parts.join('\n') : String(obj.content.parts)
+                    });
+                  } else if (
+                    obj.author &&
+                    obj.author.role &&
+                    obj.content &&
+                    obj.content.parts
+                  ) {
+                    messages.push({
+                       role: obj.author.role,
+                       content: Array.isArray(obj.content.parts) ? obj.content.parts.join('\n') : String(obj.content.parts)
+                    });
+                  } else {
+                    Object.values(obj).forEach(searchMessages);
+                  }
+                }
+              };
+              searchMessages(jsonData);
+            }
+          } catch (e) {
+            // ignore parse errors for partial chunks
+          }
+        }
+      }
+    }
+  }
+
   // 2. Try Remix Context or generic JSON in scripts
   if (messages.length === 0) {
     $("script").each((_, el) => {
