@@ -400,7 +400,15 @@ app.post("/api/extract-html", async (req, res) => {
       });
     }
 
-    const { title, messages } = extractMessagesFromHtml(html);
+    const { title, messages, isDeadLink, deadLinkMessage } = extractMessagesFromHtml(html);
+
+    if (isDeadLink) {
+      return res.status(404).json({
+        error: "CHAT_NOT_FOUND",
+        message: deadLinkMessage,
+        suggestion: "This chat link is no longer valid. Ensure the share link is active."
+      });
+    }
 
     if (messages.length === 0) {
       return res.status(422).json({
@@ -602,6 +610,21 @@ function extractMessagesFromHtml(html: string) {
     imagesUrls?: string[];
   }[] = [];
   let title = $("title").text() || "Extracted Chat";
+  let isDeadLink = false;
+  let deadLinkMessage = "Could not extract structured messages from this HTML file.";
+
+  // Check for known 404 or deleted chat signatures
+  if (
+    title.includes("404") || 
+    title.includes("Unhandled Thrown Response") || 
+    title.includes("Page not found") ||
+    html.includes("Can't load shared conversation") ||
+    html.includes("This conversation may have been deleted") ||
+    html.includes("The conversation you requested could not be found")
+  ) {
+    isDeadLink = true;
+    deadLinkMessage = "This ChatGPT share link is invalid, completely private, or has been deleted by the author.";
+  }
 
   // Heuristics for different parsers
 
@@ -660,11 +683,19 @@ function extractMessagesFromHtml(html: string) {
     const scripts = $("script").map((_, el) => $(el).html()).get();
     for (const text of scripts) {
       if (text && text.includes("streamController.enqueue")) {
-        const regex = /enqueue\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g;
+        const regex = /enqueue\(\s*new\s*Uint8Array\(\s*\[(.*?)]\s*\)\s*\)|enqueue\(\s*new\s*TextEncoder\(\)\.encode\(\s*"((?:[^"\\]|\\.)*)"\s*\)\s*\)|enqueue\(\s*"((?:[^"\\]|\\.)*)"\s*\)/g;
         let match;
         while ((match = regex.exec(text)) !== null) {
           try {
-            const unescaped = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\n/g, '\n').trim();
+            let unescaped = '';
+            if (match[1]) {
+              const bytes = match[1].split(',').map(n => parseInt(n.trim(), 10));
+              unescaped = Buffer.from(bytes).toString('utf-8');
+            } else if (match[2]) {
+              unescaped = match[2].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            } else if (match[3]) {
+              unescaped = match[3].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            }
             if (unescaped) {
               const jsonData = JSON.parse(unescaped);
               
@@ -1243,7 +1274,7 @@ function extractMessagesFromHtml(html: string) {
   }
 
   if (messages.length === 0) {
-    return { title, messages: [] };
+    return { title, messages: [], isDeadLink, deadLinkMessage };
   }
 
   console.log("Extracted messages length:", messages.length);
@@ -1284,7 +1315,7 @@ function extractMessagesFromHtml(html: string) {
     );
   });
 
-  return { title, messages: deduplicatedMessages };
+  return { title, messages: deduplicatedMessages, isDeadLink, deadLinkMessage };
 }
 
 async function startServer() {
