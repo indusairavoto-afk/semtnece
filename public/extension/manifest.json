@@ -22,7 +22,8 @@
         "http://127.0.0.1:3000/*"
       ],
       "js": ["content-inject.js"],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "externally_connectable": {

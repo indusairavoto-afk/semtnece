@@ -18,6 +18,20 @@ export function ExtensionPage() {
         <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
           Bypass cloud extraction blocks by running the extraction locally in your browser. It's fast, free, and open-source.
         </p>
+
+        {typeof window !== 'undefined' && window !== window.top && (
+          <div className="mt-8 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-left max-w-2xl mx-auto flex items-start gap-4">
+             <div className="text-amber-500 bg-amber-500/10 p-2 rounded-lg">
+               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+             </div>
+             <div>
+               <h3 className="text-amber-700 dark:text-amber-500 font-bold text-lg mb-1">Open in new tab</h3>
+               <p className="text-amber-600 dark:text-amber-400/90 text-sm">
+                 You are currently viewing this app inside the AI Studio preview. Chrome blocks extensions from running inside iframes. To use the extension, click the <strong>"Open in a new tab"</strong> button at the top right of the AI Studio preview window.
+               </p>
+             </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-12">
